@@ -1,0 +1,20 @@
+# Dark Theme
+
+background = "#0F172A"      # Deep slate background
+text_primary = "#F8FAFC"    # White / light grey text
+text_secondary = "#94A3B8"  # Cool grey text
+accent_primary = "#38BDF8"  # Sky blue
+accent_secondary = "#34D399"# Emerald green
+accent_tertiary = "#FBBF24" # Amber gold
+accent_quaternary = "#1E293B"# Dark slate for subtle backgrounds
+card_bg = "#1E293B"         # Dark slate cards
+card_border = "#334155"     # Thin dark grey borders
+
+# Color palette for charts
+chart_colors = [
+    "#38BDF8",  # Sky blue
+    "#34D399",  # Emerald
+    "#FBBF24",  # Amber gold
+    "#F472B6",  # Pink
+    "#A78BFA"   # Purple
+]

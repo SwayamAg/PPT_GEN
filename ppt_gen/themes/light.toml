@@ -1,0 +1,20 @@
+# Light Theme
+
+background = "#FBFBF9"      # Soft cream background
+text_primary = "#1A202C"    # Dark slate text
+text_secondary = "#4A5568"  # Muted grey text
+accent_primary = "#005C53"  # Deep teal
+accent_secondary = "#9FC131"# Olive green
+accent_tertiary = "#DBA514" # Gold / amber
+accent_quaternary = "#E4E7EB"# Light grey for subtle elements
+card_bg = "#FFFFFF"         # Pure white cards
+card_border = "#E2E8F0"     # Thin grey card borders
+
+# Color palette for charts
+chart_colors = [
+    "#005C53",  # Deep teal
+    "#9FC131",  # Olive
+    "#DBA514",  # Gold
+    "#042940",  # Dark navy
+    "#D95D39"   # Burnt orange
+]

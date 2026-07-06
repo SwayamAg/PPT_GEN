@@ -1,0 +1,341 @@
+{
+  "objective": "Formulate a clear strategic roadmap to accelerate premium-tier growth, restore core margins, and outline key implementation initiatives.",
+  "theme": "light",
+  "slides": [
+    {
+      "slide_index": 0,
+      "title": "Strategic Blueprint for Margin Recovery",
+      "archetype": "title_challenge",
+      "section": "Executive Summary",
+      "slots": {
+        "title": {
+          "text": "Strategic Blueprint for Margin Recovery"
+        },
+        "challenge": {
+          "text": "Margin erosion of 12% in the core tier due to aggressive competitor pricing and customer churn."
+        }
+      }
+    },
+    {
+      "slide_index": 1,
+      "title": "Premium Volume & Competitor Benchmarks",
+      "archetype": "comparison_bars",
+      "section": "Market & Competitive Benchmarking",
+      "slots": {
+        "title": {
+          "text": "Strategic Blueprint for Margin Recovery"
+        },
+        "chart1": {
+          "title": "Growth Trend Analysis (chart1)",
+          "chart_type": "bar",
+          "chart_data": {
+            "labels": [
+              "Our Target",
+              "Competitor A",
+              "Competitor B",
+              "Competitor C"
+            ],
+            "series": [
+              {
+                "name": "Performance",
+                "values": [
+                  110.0,
+                  98.0,
+                  76.0,
+                  59.0
+                ]
+              }
+            ]
+          },
+          "insight_caption": "Target Scenario projects a steady recovery over baseline."
+        },
+        "chart2": {
+          "title": "Growth Trend Analysis (chart2)",
+          "chart_type": "grouped_bar",
+          "chart_data": {
+            "labels": [
+              "Industry Baseline",
+              "Our Target"
+            ],
+            "series": [
+              {
+                "name": "Benchmark",
+                "values": [
+                  51.0,
+                  65.0
+                ]
+              }
+            ]
+          },
+          "insight_caption": "Target Scenario projects a steady recovery over baseline."
+        }
+      }
+    },
+    {
+      "slide_index": 2,
+      "title": "Initiatives to Scale Premium Operations",
+      "archetype": "two_column_initiative",
+      "section": "Strategic growth initiatives",
+      "slots": {
+        "title": {
+          "text": "Strategic Blueprint for Margin Recovery"
+        },
+        "left_title": {
+          "text": "Strategic Initiative for Left Title"
+        },
+        "step1": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step1",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "step2": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step2",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "step3": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step3",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "step4": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step4",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "kpi_left": {
+          "label": "Conversion rate indicator",
+          "value": "↑ 49%"
+        },
+        "right_title": {
+          "text": "Strategic Initiative for Right Title"
+        },
+        "step5": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step5",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "step6": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step6",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "step7": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step7",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "step8": {
+          "badge": "01",
+          "title": "Key Milestone Playbook step8",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "kpi_right": {
+          "label": "Conversion rate indicator",
+          "value": "↑ 46%"
+        }
+      }
+    },
+    {
+      "slide_index": 3,
+      "title": "Target Market Share Recovery",
+      "archetype": "single_chart_focus",
+      "section": "Strategic growth initiatives",
+      "slots": {
+        "title": {
+          "text": "Strategic Blueprint for Margin Recovery"
+        },
+        "chart_panel": {
+          "title": "Growth Trend Analysis (chart_panel)",
+          "chart_type": "line",
+          "chart_data": {
+            "labels": [
+              "Q1",
+              "Q2",
+              "Q3",
+              "Q4",
+              "Q5",
+              "Q6"
+            ],
+            "series": [
+              {
+                "name": "Current Path",
+                "values": [
+                  34.5,
+                  34.4,
+                  35.0,
+                  34.9,
+                  35.6,
+                  34.2
+                ]
+              },
+              {
+                "name": "Target Play",
+                "values": [
+                  38.8,
+                  41.0,
+                  44.0,
+                  46.5,
+                  49.9,
+                  52.8
+                ]
+              }
+            ]
+          },
+          "insight_caption": "Target Scenario projects a steady recovery over baseline."
+        },
+        "bullets": {
+          "text": "Focusing on customer churn reduction.\nOptimizing pricing tier models.\nUpgrading partner sales networks.\nAutomating client onboarding workflows."
+        }
+      }
+    },
+    {
+      "slide_index": 4,
+      "title": "Projected Financial Gains & Key KPIs",
+      "archetype": "stat_grid_charts",
+      "section": "Financial Plan & Next Steps",
+      "slots": {
+        "title": {
+          "text": "Strategic Blueprint for Margin Recovery"
+        },
+        "stat1": {
+          "label": "Growth in premium segments",
+          "value": "↑ 20%"
+        },
+        "stat2": {
+          "label": "Growth in premium segments",
+          "value": "↑ 13%"
+        },
+        "stat3": {
+          "label": "Growth in premium segments",
+          "value": "↑ 10%"
+        },
+        "stat4": {
+          "label": "Growth in premium segments",
+          "value": "↑ 26%"
+        },
+        "chart_panel1": {
+          "title": "Growth Trend Analysis (chart_panel1)",
+          "chart_type": "line",
+          "chart_data": {
+            "labels": [
+              "Q1",
+              "Q2",
+              "Q3",
+              "Q4",
+              "Q5",
+              "Q6"
+            ],
+            "series": [
+              {
+                "name": "Current Path",
+                "values": [
+                  36.5,
+                  35.0,
+                  36.0,
+                  37.0,
+                  37.3,
+                  36.6
+                ]
+              },
+              {
+                "name": "Target Play",
+                "values": [
+                  37.4,
+                  40.6,
+                  45.8,
+                  50.1,
+                  55.1,
+                  57.2
+                ]
+              }
+            ]
+          },
+          "insight_caption": "Target Scenario projects a steady recovery over baseline."
+        },
+        "chart_panel2": {
+          "title": "Growth Trend Analysis (chart_panel2)",
+          "chart_type": "grouped_bar",
+          "chart_data": {
+            "labels": [
+              "Industry Baseline",
+              "Our Target"
+            ],
+            "series": [
+              {
+                "name": "Benchmark",
+                "values": [
+                  54.0,
+                  65.0
+                ]
+              }
+            ]
+          },
+          "insight_caption": "Target Scenario projects a steady recovery over baseline."
+        }
+      }
+    },
+    {
+      "slide_index": 5,
+      "title": "Resource Allocation & Next Steps",
+      "archetype": "table_priorities",
+      "section": "Financial Plan & Next Steps",
+      "slots": {
+        "title": {
+          "text": "Strategic Blueprint for Margin Recovery"
+        },
+        "table_panel": {
+          "title": "Strategic Resource Allocations",
+          "headers": [
+            "Key Workstream",
+            "Budget Allocation",
+            "Target Outcome"
+          ],
+          "rows": [
+            [
+              "Customer Retention Engine",
+              "$150K",
+              "+15% margin"
+            ],
+            [
+              "Premium Tier Feature Expansion",
+              "$200K",
+              "+10% volume"
+            ],
+            [
+              "Channel Partner Referral Program",
+              "$350K",
+              "+25% conversion"
+            ],
+            [
+              "Sales Team Direct Enablement",
+              "$100K",
+              "+5% scale"
+            ]
+          ],
+          "insight_caption": "Marketing and retention account for 68% of initial resource allocation."
+        },
+        "card1": {
+          "badge": "01",
+          "title": "Key Milestone Playbook card1",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "card2": {
+          "badge": "01",
+          "title": "Key Milestone Playbook card2",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "card3": {
+          "badge": "01",
+          "title": "Key Milestone Playbook card3",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        },
+        "card4": {
+          "badge": "01",
+          "title": "Key Milestone Playbook card4",
+          "desc": "Detailing action plan milestones and critical project execution steps."
+        }
+      }
+    }
+  ]
+}

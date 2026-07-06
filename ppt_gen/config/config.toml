@@ -1,0 +1,36 @@
+# ppt_gen Configuration File
+
+[presentation]
+# Standard widescreen dimensions in inches (13.33 x 7.5)
+width_inches = 13.33
+height_inches = 7.5
+
+# Grid settings
+grid_cols = 12
+grid_rows = 8
+
+# Margins and gutters in inches
+margin_left = 0.5
+margin_right = 0.5
+margin_top = 0.5
+margin_bottom = 0.5
+gutter_width = 0.15
+gutter_height = 0.15
+
+[llm]
+# Ollama configuration
+host = "http://localhost:11434"
+model = "gemma4:e4b"  # or gemma:4b / gemma:2b
+default_temperature = 0.3
+plan_temperature = 0.5
+max_retries = 2
+
+[typography]
+# Fonts to use for rendering
+header_font = "Arial"
+body_font = "Arial"
+# Path to font file for measurement (Pillow uses TTF files directly)
+# Default is windows standard font path. Can be overridden.
+font_path = "C:/Windows/Fonts/arial.ttf"
+bold_font_path = "C:/Windows/Fonts/arialbd.ttf"
+italic_font_path = "C:/Windows/Fonts/ariali.ttf"
