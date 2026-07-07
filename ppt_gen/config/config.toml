@@ -20,7 +20,7 @@ gutter_height = 0.15
 [llm]
 # Ollama configuration
 host = "http://localhost:11434"
-model = "gemma4:e4b"  # or gemma:4b / gemma:2b
+model = "gemma4:e2b-it-qat"  # or gemma:4b / gemma:2b
 default_temperature = 0.3
 plan_temperature = 0.5
 max_retries = 2
