@@ -33,6 +33,11 @@ venv.bak/
 # Project Outputs
 output/
 
+# Compressed archives
+*.zip
+*.tar.gz
+*.rar
+
 # IDEs and Editors
 .vscode/
 .idea/
