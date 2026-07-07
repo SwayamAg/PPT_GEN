@@ -15,7 +15,7 @@ from ppt_gen.core.outline_checkpoint import run_outline_checkpoint
 from ppt_gen.core.slide_generator import SlideGenerator
 from ppt_gen.core.content_formatter import format_content
 from ppt_gen.core.blueprint_library import get_blueprint
-from ppt_gen.core.plan_store import compile_deck_plan, save_deck_plan, load_deck_plan
+from ppt_gen.core.plan_store import compile_deck_plan, save_deck_plan, load_deck_plan, pregenerate_deck_data
 from ppt_gen.core.renderer import PPTXRenderer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -57,7 +57,7 @@ def handle_build(args):
     logger.info(f"Checking for template preset matching '{reqs.topic}'...")
     preset = get_preset_plan(reqs.deck_type)
     
-    if preset:
+    if preset and reqs.slide_count == len(preset["slides"]):
         logger.info(f"Found built-in preset '{reqs.deck_type}'. Skipping planning LLM calls.")
         deck_plan = DeckPlan(objective=preset["objective"], sections=preset["sections"])
         slides_outline = [SlideOutlineItem(**s) for s in preset["slides"]]
@@ -86,7 +86,12 @@ def handle_build(args):
             slide.user_data = reqs.user_data
             slide.data_mode = "user_supplied"
             
-    # 5. Slide Generation Loop
+    # 5. Resolve Synthetic and User-supplied Data First (Data-First Approach)
+    logger.info("Pre-generating synthetic numbers and structures for slides...")
+    deck_id = slugify(reqs.topic)
+    pregenerated_deck = pregenerate_deck_data(deck_id, approved_slides)
+    
+    # 6. Slide Generation Loop
     generated_slides = []
     slide_generator = SlideGenerator(llm_client)
     
@@ -95,8 +100,10 @@ def handle_build(args):
         prev_title = approved_slides[idx - 1].slide_title if idx > 0 else None
         next_title = approved_slides[idx + 1].slide_title if idx < len(approved_slides) - 1 else None
         
-        # Call LLM #3 to generate contents
-        slide_content = slide_generator.generate_slide(idx, slide_item, prev_title, next_title)
+        # Call LLM #3 to generate contents with pre-generated numbers
+        slide_content = slide_generator.generate_slide(
+            idx, slide_item, pregenerated_deck[idx], prev_title, next_title
+        )
         
         # Apply formatting / layout constraints
         blueprint = get_blueprint(slide_item.archetype)
@@ -104,21 +111,21 @@ def handle_build(args):
         
         generated_slides.append(formatted_content)
         
-    # 6. Compile, save, and render
-    deck_id = slugify(reqs.topic)
+    # 7. Compile, save, and render
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_name = f"{deck_id}_{timestamp}"
     
     plan_path = Path("output") / f"{output_name}.plan.json"
     pptx_path = Path("output") / f"{output_name}.pptx"
     
-    logger.info("Resolving synthetic data engine parameters...")
+    logger.info("Merging LLM text copy and pre-generated numbers...")
     full_deck_plan = compile_deck_plan(
         deck_id=deck_id,
         objective=deck_plan.objective,
         theme=reqs.theme,
         slides_outline=approved_slides,
-        slides_content=generated_slides
+        slides_content=generated_slides,
+        pregenerated_deck=pregenerated_deck
     )
     
     logger.info(f"Saving resolved plan to {plan_path}...")

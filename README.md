@@ -7,7 +7,7 @@ A template-driven PowerPoint generation engine combining a local LLM content fil
 ## 🚀 Key Features
 
 - **LLM-Enforced Dynamic Schemas** — Pydantic models are built at runtime per archetype, ensuring local LLMs output clean, schema-validated slot content.
-- **Deterministic Synthetic Data Engine** — LLMs never invent raw numbers. A seeded RNG engine generates direction-coherent stats, trendlines, and tables from keyword inference on the label text.
+- **Deterministic Data-First Pipeline** — Resolves all numeric data, charts, and tables *first* before running the slide copywriter LLM. This enables the LLM to inspect the pre-generated numbers and write precise, McKinsey-style insight captions that explicitly reference and narrate the data points shown.
 - **Human-in-the-Loop Outline Checkpoint** — After planning, an editable `output/outline_review.md` is created. Review, rename slides, or swap archetypes before generation starts. Skip with `--fast`.
 - **Pixel-Accurate Typography** — Uses `Pillow` + system TTF fonts to binary-search font sizes and word-wrap text to fit exactly within each slide box — no overflow, no shrink-to-illegible.
 - **Fast Re-render Loop** — LLM content and final rendering are fully decoupled. Edit numbers in the sidecar `<name>.plan.json` and recompile to `.pptx` in under a second with no LLM call.
@@ -32,9 +32,9 @@ A template-driven PowerPoint generation engine combining a local LLM content fil
                                        └─────────────┬───────────────┘
                                                      ▼
                            ┌─────────────────────────────────────────┐
-                           │ Per-Slide Loop (LLM #3 per slide):      │
-                           │ Blueprint → Slide Generator → Formatter  │
-                           │ → Synthetic Data Engine → Layout Engine  │
+                           │ Data-First Execution Sequence:          │
+                           │ Pregenerate Data → Slide Gen (LLM #3)    │
+                           │ → Formatter → Layout Engine             │
                            │ → Typography Audit → Chart Engine        │
                            └──────────────────────┬──────────────────┘
                                                   ▼

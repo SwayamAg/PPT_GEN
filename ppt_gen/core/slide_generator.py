@@ -14,10 +14,11 @@ class SlideGenerator:
         self,
         slide_idx: int,
         item: SlideOutlineItem,
+        pregenerated_data: Dict[str, Any],
         prev_title: Optional[str] = None,
         next_title: Optional[str] = None
     ) -> SlideContent:
-        """Call LLM #3 to fill in the text and structure slots for the slide archetype."""
+        """Call LLM #3 to fill in the text and structure slots for the slide archetype using pre-generated numbers."""
         blueprint = get_blueprint(item.archetype)
         
         # Create a dynamic Pydantic model matching the slots for this blueprint
@@ -26,14 +27,17 @@ class SlideGenerator:
         system_prompt = (
             "You are an expert slide content copywriter. Your task is to fill the content slots for a single slide.\n"
             f"The slide archetype is '{item.archetype}'. You must generate a JSON object containing keys for every "
-            "slot in the archetype blueprint. Do NOT add extra keys, and do NOT omit required keys.\n\n"
+            "slot in the archetype blueprint.\n\n"
             "CRITICAL RULES:\n"
-            "1. NEVER invent raw numeric values for KPI metrics or trends. Write only descriptive labels, titles, "
-            "and captions. Keep the numeric fields (like 'value' in stat_callout or kpi_pill) as empty strings \"\" or null. "
-            "A downstream engine will calculate correct numbers.\n"
-            "2. If the user provided real numbers (below), you MUST use those values verbatim in the appropriate fields.\n"
-            "3. Respect length constraints. Keep your language crisp, professional, and action-oriented (McKinsey-style).\n"
-            "4. Return a JSON matching the requested schema exactly."
+            "1. You are provided with the exact pre-generated numeric data (KPI values, chart series, table contents) for this slide.\n"
+            "2. DO NOT invent, alter, or falsify any numbers in your output. Only write descriptive labels, titles, "
+            "and insight captions that narrate this dataset.\n"
+            "3. Your insight captions, supporting text blocks, and bullet points must be highly specific, professional, and action-oriented (McKinsey-style). You must "
+            "explicitly reference, analyze, and cite the specific values, percentages, or trends in the provided dataset to make "
+            "the text align perfectly with what is visually shown on the charts, tables, or KPIs. For example, do not write generic advice in "
+            "supporting bullet points next to a chart; instead, write data-driven analytical takeaways explaining the metrics, differences, or targets shown.\n"
+            "4. Respect length constraints. Keep your language crisp.\n"
+            "5. Return a JSON matching the requested schema exactly."
         )
         
         # Explain each slot's constraints in the user prompt
@@ -48,6 +52,22 @@ class SlideGenerator:
             )
         slots_text = "\n".join(slot_descriptions)
         
+        # Format the pre-generated numeric data for the LLM to inspect
+        pregen_formatted = []
+        for slot_id, pregen_val in pregenerated_data.items():
+            if not pregen_val:
+                continue
+            if "value" in pregen_val:
+                pregen_formatted.append(f"- Slot '{slot_id}' (KPI/Stat) pre-generated value is: '{pregen_val['value']}'")
+            elif "chart_data" in pregen_val and pregen_val["chart_data"]:
+                pregen_formatted.append(f"- Slot '{slot_id}' (Chart) pre-generated dataset: {pregen_val['chart_data']}")
+            elif "rows" in pregen_val and pregen_val["rows"]:
+                pregen_formatted.append(
+                    f"- Slot '{slot_id}' (Table) pre-generated columns: Headers: {pregen_val.get('headers')}, "
+                    f"Rows: {pregen_val['rows']}"
+                )
+        pregen_text = "\n".join(pregen_formatted)
+        
         user_content = (
             f"Slide Index: {slide_idx + 1}\n"
             f"Slide Title: {item.slide_title}\n"
@@ -55,22 +75,20 @@ class SlideGenerator:
             f"Section: {item.section}\n"
             f"Previous Slide Title: {prev_title or 'Start of Presentation'}\n"
             f"Next Slide Title: {next_title or 'End of Presentation'}\n\n"
-            f"Slots to generate:\n{slots_text}\n"
+            f"Archetype Slots:\n{slots_text}\n\n"
+            f"PRE-GENERATED NUMERIC DATA FOR THIS SLIDE (Reference these exact numbers in your insight captions):\n"
+            f"{pregen_text}\n"
         )
         
         # Inject user data if supplied
         if item.user_data:
-            user_content += f"\nUser-supplied real numbers to include:\n{item.user_data}\n"
-        else:
-            user_content += "\nNo user-supplied numbers provided. Set values to empty strings.\n"
+            user_content += f"\nUser-supplied real numbers override: {item.user_data}\n"
             
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content}
         ]
         
-        # Call LLM with the dynamically created validation model
-        # The schema of payload_model is sent in the 'format' field to Ollama
         logger_name = "slide_generator"
         import logging
         logger = logging.getLogger(logger_name)

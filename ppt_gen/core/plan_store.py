@@ -20,15 +20,61 @@ class FullDeckPlan(BaseModel):
     theme: Literal["light", "dark"] = "light"
     slides: List[ResolvedSlide]
 
+def pregenerate_deck_data(
+    deck_id: str,
+    slides_outline: List[SlideOutlineItem]
+) -> List[Dict[str, Any]]:
+    """Generate all numeric, chart, and table values beforehand based on outline titles/purposes."""
+    engine = SyntheticDataEngine(deck_id=deck_id)
+    pregenerated_deck = []
+    
+    for idx, outline in enumerate(slides_outline):
+        blueprint = get_blueprint(outline.archetype)
+        slide_data = {}
+        
+        # Use slide title + purpose to infer overall trend direction
+        slide_context_text = f"{outline.slide_title} {outline.purpose}"
+        
+        for slot in blueprint.slots:
+            if slot.data_shape:
+                user_val = outline.user_data.get(slot.id) if outline.user_data else None
+                resolved = engine.generate_slot_value(idx, slot.id, slide_context_text, slot.data_shape, user_val)
+                
+                # Format appropriately matching slot widget definitions
+                if slot.widget in ("stat_callout", "kpi_pill"):
+                    slide_data[slot.id] = {"value": resolved}
+                elif slot.widget == "chart_panel":
+                    chart_type = "line"
+                    if slot.data_shape == "trend_series":
+                        chart_type = "line"
+                    elif slot.data_shape == "paired_comparison":
+                        chart_type = "grouped_bar"
+                    elif slot.data_shape == "ranked_bar":
+                        chart_type = "bar"
+                    slide_data[slot.id] = {
+                        "chart_type": chart_type,
+                        "chart_data": resolved
+                    }
+                elif slot.widget == "table_panel":
+                    slide_data[slot.id] = {
+                        "headers": resolved.get("headers") if resolved else [],
+                        "rows": resolved.get("values") if resolved else []
+                    }
+            else:
+                slide_data[slot.id] = {}
+        pregenerated_deck.append(slide_data)
+        
+    return pregenerated_deck
+
 def compile_deck_plan(
     deck_id: str,
     objective: str,
     theme: Literal["light", "dark"],
     slides_outline: List[SlideOutlineItem],
-    slides_content: List[SlideContent]
+    slides_content: List[SlideContent],
+    pregenerated_deck: List[Dict[str, Any]]
 ) -> FullDeckPlan:
-    """Combine outlines, contents, and run the Synthetic Data Engine to resolve numbers."""
-    engine = SyntheticDataEngine(deck_id=deck_id)
+    """Merge the outlines, LLM-generated copy, and pre-generated data into a final FullDeckPlan."""
     resolved_slides = []
     
     # Map index to slide content for easy lookup
@@ -37,16 +83,15 @@ def compile_deck_plan(
     for idx, outline in enumerate(slides_outline):
         content = content_map.get(idx)
         if not content:
-            # Fallback if a slide generation failed
             content = SlideContent(slide_index=idx, archetype=outline.archetype, slots={})
             
         blueprint = get_blueprint(outline.archetype)
+        pregen_slide = pregenerated_deck[idx]
         resolved_slots = {}
         
-        # Populate and merge synthetic/user data
         for slot in blueprint.slots:
             payload = content.slots.get(slot.id, {})
-            # If payload is empty, initialize it according to widget type
+            # If payload is empty, initialize default mock texts
             if not payload:
                 if slot.widget == "text":
                     payload = {"text": f"Overview of {outline.slide_title}"}
@@ -59,48 +104,32 @@ def compile_deck_plan(
                 elif slot.widget == "table_panel":
                     payload = {"title": "Project allocation", "insight_caption": ""}
             
-            # Resolve synthetic values
-            if slot.data_shape:
+            # Merge pre-generated data fields
+            pregen_val = pregen_slide.get(slot.id)
+            if pregen_val:
                 if slot.widget in ("stat_callout", "kpi_pill"):
-                    label = payload.get("label", "")
-                    user_val = outline.user_data.get(slot.id) if outline.user_data else None
-                    # Generate value
-                    resolved_val = engine.generate_slot_value(idx, slot.id, label, slot.data_shape, user_val)
-                    payload["value"] = resolved_val
-                    
+                    payload["value"] = pregen_val.get("value", "")
                 elif slot.widget == "chart_panel":
-                    title = payload.get("title", "")
-                    user_val = outline.user_data.get(slot.id) if outline.user_data else None
-                    resolved_chart = engine.generate_slot_value(idx, slot.id, title, slot.data_shape, user_val)
-                    payload["chart_data"] = resolved_chart
-                    # Infer chart type from data_shape if not set
-                    if not payload.get("chart_type"):
-                        if slot.data_shape == "trend_series":
-                            payload["chart_type"] = "line"
-                        elif slot.data_shape == "paired_comparison":
-                            payload["chart_type"] = "grouped_bar"
-                        elif slot.data_shape == "ranked_bar":
-                            payload["chart_type"] = "bar"
-                            
+                    payload["chart_data"] = pregen_val.get("chart_data")
+                    payload["chart_type"] = pregen_val.get("chart_type")
                 elif slot.widget == "table_panel":
-                    title = payload.get("title", "")
-                    user_val = outline.user_data.get(slot.id) if outline.user_data else None
-                    resolved_table = engine.generate_slot_value(idx, slot.id, title, slot.data_shape, user_val)
-                    
-                    # Merge LLM descriptive rows with synthetic numbers if available
+                    # Merge LLM descriptive table rows with pre-generated numbers
                     llm_rows = payload.get("rows")
-                    if llm_rows and resolved_table:
+                    pregen_rows = pregen_val.get("rows", [])
+                    headers = pregen_val.get("headers", [])
+                    
+                    if llm_rows and pregen_rows:
                         merged_rows = []
                         for r_idx, row in enumerate(llm_rows):
-                            synth_row = resolved_table["values"][r_idx % len(resolved_table["values"])].copy()
+                            synth_row = pregen_rows[r_idx % len(pregen_rows)].copy()
                             if row:
-                                synth_row[0] = row[0]  # Keep the LLM's text description for the row
+                                synth_row[0] = row[0]  # Overwrite first column description with LLM text
                             merged_rows.append(synth_row)
                         payload["rows"] = merged_rows
-                        payload["headers"] = resolved_table["headers"]
-                    elif resolved_table:
-                        payload["headers"] = resolved_table["headers"]
-                        payload["rows"] = resolved_table["values"]
+                        payload["headers"] = headers
+                    else:
+                        payload["rows"] = pregen_rows
+                        payload["headers"] = headers
                         
             resolved_slots[slot.id] = payload
             
