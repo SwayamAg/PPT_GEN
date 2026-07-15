@@ -440,7 +440,7 @@ with gr.Blocks(
                 
                 mock_mode = gr.Checkbox(
                     label="Mock LLM Mode (Fast & Offline)",
-                    value=True,
+                    value=False,
                 )
 
                 api_key = gr.Textbox(

@@ -95,8 +95,12 @@ class SlideGenerator:
             f"slot's meaning (or null if none fits): {icon_enum_for_prompt()}.\n"
             "7. badge fields: only set a badge if it is a meaningful short label (e.g. 'Phase 1', 'Priority'). "
             "If not meaningful, leave badge as empty string \"\".\n"
-            "8. CRITICAL: All plain string fields (title, label, desc, text, value, insight_caption etc.) MUST be "
-            "plain JSON strings — NOT objects or dicts. WRONG: {\"title\": {\"text\": \"...\"}}. RIGHT: {\"title\": \"...\"}.\n\n"
+            "8. CRITICAL JSON STRUCTURE: Each slot value must be a JSON object (dict) matching its schema — NEVER a plain string. "
+            "For a slot of type text/eyebrow/footer the value must be {\"text\": \"...\"}. "
+            "For a slot of type kpi_card/stat_callout the value must be {\"label\": \"...\", \"value\": \"...\"}. "
+            "WRONG: {\"title\": \"Dual-Track Growth\"}. RIGHT: {\"title\": {\"text\": \"Dual-Track Growth\"}}.\n"
+            "EXCEPTION: Fields INSIDE a widget dict that are declared as plain strings (e.g. label, value, desc, insight_caption) "
+            "must remain plain strings — do NOT nest them further.\n\n"
             f"ARCHETYPE GUIDANCE: {arch_hint}"
         )
         

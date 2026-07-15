@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Type, Any
-from pydantic import BaseModel, create_model, field_validator
+from pydantic import BaseModel, create_model, field_validator, model_validator
 from ppt_gen.core.blueprint_library import Blueprint
 
 
@@ -13,11 +13,27 @@ def _coerce_str(v: Any) -> str:
         return str(v)
     return str(v) if v is not None else ""
 
+
+def _coerce_payload(data: Any, primary_key: str) -> Any:
+    """Auto-wrap a plain string into a payload dict.
+
+    If the LLM returns a raw string for a slot that expects a dict/model,
+    wrap it: 'Dual-Track Growth' -> {'text': 'Dual-Track Growth'}.
+    This is the inverse of _coerce_str and fixes the mirror-image LLM error.
+    """
+    if isinstance(data, str):
+        return {primary_key: data}
+    return data
+
 # ---------------------------------------------------------------------------
 # Widget payload models
 # ---------------------------------------------------------------------------
 class TextPayload(BaseModel):
     text: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "text")
 
     @field_validator("text", mode="before")
     @classmethod
@@ -28,6 +44,10 @@ class StatCalloutPayload(BaseModel):
     value: Optional[str] = None
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
+
     @field_validator("label", "value", "icon", mode="before")
     @classmethod
     def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
@@ -37,6 +57,10 @@ class KPICardPayload(BaseModel):
     value: Optional[str] = None
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
+
     @field_validator("label", "value", "icon", mode="before")
     @classmethod
     def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
@@ -45,6 +69,10 @@ class KPIPillPayload(BaseModel):
     label: str
     value: Optional[str] = None
     icon: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
 
     @field_validator("label", "value", "icon", mode="before")
     @classmethod
@@ -56,6 +84,10 @@ class NumberedStepPayload(BaseModel):
     desc: str
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "title")
+
     @field_validator("badge", "title", "desc", "icon", mode="before")
     @classmethod
     def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
@@ -66,6 +98,10 @@ class PriorityCardPayload(BaseModel):
     desc: str
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "title")
+
     @field_validator("badge", "title", "desc", "icon", mode="before")
     @classmethod
     def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
@@ -75,10 +111,18 @@ class ProgressIndicatorPayload(BaseModel):
     value: Optional[str] = None
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
+
 class GrowthArrowPayload(BaseModel):
     label: str
     value: Optional[str] = None
     icon: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
 
 class BenchmarkBarPayload(BaseModel):
     label: str
@@ -86,17 +130,33 @@ class BenchmarkBarPayload(BaseModel):
     target: Optional[str] = None
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
+
 class MarketShareStripPayload(BaseModel):
     label: str
     icon: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
 
 class ScorecardPayload(BaseModel):
     label: str
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
+
 class MatrixViewPayload(BaseModel):
     label: str
     icon: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
 
 class VarianceGraphicPayload(BaseModel):
     label: str
@@ -104,13 +164,25 @@ class VarianceGraphicPayload(BaseModel):
     target: Optional[str] = None
     icon: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "label")
+
 class EyebrowPayload(BaseModel):
     """Uppercase letter-spaced label above a section header (gold in navy theme)."""
     text: str
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "text")
+
 class FooterPayload(BaseModel):
     """Muted footer line at bottom of title/closing slides."""
     text: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "text")
 
 # ---------------------------------------------------------------------------
 # Phase 2 extension: new visual widget payload models
@@ -161,6 +233,10 @@ class ChartPanelPayload(BaseModel):
     # (visual_selector.py) in plan_store.compile_deck_plan(), never by the LLM.
     chart_data: Optional[ChartDataPayload] = None
     insight_caption: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_from_str(cls, v): return _coerce_payload(v, "title")
 
     @field_validator("title", "insight_caption", mode="before")
     @classmethod
