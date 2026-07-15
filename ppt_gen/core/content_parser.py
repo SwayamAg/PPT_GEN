@@ -1,6 +1,17 @@
 from typing import List, Optional, Dict, Type, Any
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, create_model, field_validator
 from ppt_gen.core.blueprint_library import Blueprint
+
+
+def _coerce_str(v: Any) -> str:
+    """Auto-unwrap LLM-produced dicts like {'text': '...'} to plain strings."""
+    if isinstance(v, dict):
+        for key in ("text", "title", "label", "value", "desc", "name", "content"):
+            if key in v and isinstance(v[key], str):
+                return v[key]
+        # last resort: stringify the dict
+        return str(v)
+    return str(v) if v is not None else ""
 
 # ---------------------------------------------------------------------------
 # Widget payload models
@@ -8,20 +19,36 @@ from ppt_gen.core.blueprint_library import Blueprint
 class TextPayload(BaseModel):
     text: str
 
+    @field_validator("text", mode="before")
+    @classmethod
+    def coerce_text(cls, v): return _coerce_str(v)
+
 class StatCalloutPayload(BaseModel):
     label: str
     value: Optional[str] = None
     icon: Optional[str] = None
+
+    @field_validator("label", "value", "icon", mode="before")
+    @classmethod
+    def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
 
 class KPICardPayload(BaseModel):
     label: str
     value: Optional[str] = None
     icon: Optional[str] = None
 
+    @field_validator("label", "value", "icon", mode="before")
+    @classmethod
+    def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
+
 class KPIPillPayload(BaseModel):
     label: str
     value: Optional[str] = None
     icon: Optional[str] = None
+
+    @field_validator("label", "value", "icon", mode="before")
+    @classmethod
+    def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
 
 class NumberedStepPayload(BaseModel):
     badge: Optional[str] = None
@@ -29,11 +56,19 @@ class NumberedStepPayload(BaseModel):
     desc: str
     icon: Optional[str] = None
 
+    @field_validator("badge", "title", "desc", "icon", mode="before")
+    @classmethod
+    def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
+
 class PriorityCardPayload(BaseModel):
     badge: Optional[str] = None
     title: str
     desc: str
     icon: Optional[str] = None
+
+    @field_validator("badge", "title", "desc", "icon", mode="before")
+    @classmethod
+    def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
 
 class ProgressIndicatorPayload(BaseModel):
     label: str
@@ -127,11 +162,19 @@ class ChartPanelPayload(BaseModel):
     chart_data: Optional[ChartDataPayload] = None
     insight_caption: Optional[str] = None
 
+    @field_validator("title", "insight_caption", mode="before")
+    @classmethod
+    def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
+
 class TablePanelPayload(BaseModel):
     title: str
     headers: Optional[List[str]] = None
     rows: Optional[List[List[str]]] = None
     insight_caption: Optional[str] = None
+
+    @field_validator("title", "insight_caption", mode="before")
+    @classmethod
+    def coerce_fields(cls, v): return _coerce_str(v) if v is not None else v
 
 # Mapping widget name → its schema class
 

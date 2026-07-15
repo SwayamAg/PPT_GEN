@@ -94,7 +94,9 @@ class SlideGenerator:
             "6. For slots that include an 'icon' field, pick ONE icon name from this enum that best matches the "
             f"slot's meaning (or null if none fits): {icon_enum_for_prompt()}.\n"
             "7. badge fields: only set a badge if it is a meaningful short label (e.g. 'Phase 1', 'Priority'). "
-            "If not meaningful, leave badge as empty string \"\".\n\n"
+            "If not meaningful, leave badge as empty string \"\".\n"
+            "8. CRITICAL: All plain string fields (title, label, desc, text, value, insight_caption etc.) MUST be "
+            "plain JSON strings — NOT objects or dicts. WRONG: {\"title\": {\"text\": \"...\"}}. RIGHT: {\"title\": \"...\"}.\n\n"
             f"ARCHETYPE GUIDANCE: {arch_hint}"
         )
         
