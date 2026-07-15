@@ -236,6 +236,9 @@ def generate_deck_action(df, deck_objective, reqs, mock_mode, api_key):
     if df is None or len(df) == 0:
         return "Outline is empty. Generate outline first.", None
 
+    if reqs is None:
+        return "⚠️ Setup requirements are missing. Please click 'Generate Outline' first.", None
+
     try:
         # Load settings
         settings = load_settings(reqs.theme)

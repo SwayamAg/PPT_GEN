@@ -123,7 +123,7 @@ class SlideGenerator:
         if item.user_data:
             user_content += f"\nUser-supplied real numbers to include verbatim:\n{item.user_data}\n"
         else:
-            user_content += "\nNo user-supplied numbers provided. Set all value/target fields to empty strings.\n"
+            user_content += "\nNo user-supplied numbers provided. Generate realistic and plausible numbers based on your domain knowledge of the topic.\n"
             
         if extra_instructions:
             user_content += f"\nAdditional narrative instructions/tone guidelines to follow:\n{extra_instructions}\n"
