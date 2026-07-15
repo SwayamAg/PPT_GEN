@@ -38,6 +38,31 @@ def _find_font(candidates: list[str]) -> str:
     return candidates[-1]  # Let the font library warn; don't crash here
 
 
+# Logical-name → per-OS candidate paths
+_FONT_CANDIDATES: dict = {
+    # (name_lower, bold, italic) -> [candidates...]
+    # Windows stores font files lowercase; some installs have uppercase.
+    # Linux: Liberation = metrically-compatible Arial/Calibri replacement.
+    #        DejaVu     = universal fallback.
+}
+
+_LINUX_SANS = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+]
+_LINUX_SANS_BOLD = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+]
+_LINUX_SANS_ITALIC = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+]
+
+
 def _platform_font(name: str, bold: bool = False, italic: bool = False) -> str:
     """Resolve a best-guess system font path for the given logical font name."""
     is_mac   = sys.platform == "darwin"
@@ -58,7 +83,6 @@ def _platform_font(name: str, bold: bool = False, italic: bool = False) -> str:
             f"{base}{suffix.lower()}.ttf",
         ]
         candidates = [f"{d}/{v}" for d in mac_dirs for v in variants]
-        # Reliable macOS fallbacks
         candidates += [
             "/System/Library/Fonts/Helvetica.ttc",
             "/System/Library/Fonts/Arial.ttf",
@@ -66,17 +90,42 @@ def _platform_font(name: str, bold: bool = False, italic: bool = False) -> str:
         return _find_font(candidates)
 
     if is_linux:
-        fc = {"bold": "Bold", "italic": "Italic", "": ""}[
-            "bold" if bold else ("italic" if italic else "")
-        ]
-        return _find_font([
-            f"/usr/share/fonts/truetype/dejavu/DejaVuSans{'-' + fc if fc else ''}.ttf",
-            f"/usr/share/fonts/truetype/liberation/LiberationSans{'-' + fc if fc else ''}-Regular.ttf",
-        ])
+        if bold:
+            return _find_font(_LINUX_SANS_BOLD)
+        if italic:
+            return _find_font(_LINUX_SANS_ITALIC)
+        return _find_font(_LINUX_SANS)
 
-    # Windows fallback
+    # Windows — build candidates with both lowercase and uppercase filename variants
+    win_dir = "C:/Windows/Fonts"
+    suffix_map = {
+        # (bold, italic) -> common filename suffixes per font family
+        "arial":   {(False,False):"arial",    (True,False):"arialbd",   (False,True):"ariali",  (True,True):"arialbi"},
+        "calibri": {(False,False):"calibri",  (True,False):"calibrib",  (False,True):"calibrii",(True,True):"calibriz"},
+        "cambria": {(False,False):"cambria",  (True,False):"cambriab",  (False,True):"cambriai",(True,True):"cambriaz"},
+        "calibril":{(False,False):"calibril", (True,False):"calibril",  (False,True):"calibril",(True,True):"calibril"},
+    }
+    key = (bold, italic)
+    if base in suffix_map:
+        stem = suffix_map[base][key]
+        candidates = [
+            f"{win_dir}/{stem}.ttf",
+            f"{win_dir}/{stem.upper()}.TTF",
+            f"{win_dir}/{stem}.ttc",   # cambria ships as .ttc
+        ]
+        # cambria special case
+        if base == "cambria" and not bold and not italic:
+            candidates.insert(0, f"{win_dir}/cambria.ttc")
+        return _find_font(candidates)
+
+    # Generic fallback for unknown font names
     suffix = "bd" if bold else ("i" if italic else "")
-    return f"C:/Windows/Fonts/{base}{suffix}.ttf"
+    candidates = [
+        f"{win_dir}/{base}{suffix}.ttf",
+        f"{win_dir}/{base}{suffix}.ttc",
+        f"{win_dir}/arial.ttf",  # last resort
+    ]
+    return _find_font(candidates)
 
 
 class TypographySettings(BaseModel):
@@ -126,6 +175,32 @@ class Settings(BaseModel):
     charts: ChartSettings = Field(default_factory=ChartSettings)
     theme: Optional[ThemeSettings] = None
 
+def _resolve_font_paths(typo_data: dict) -> dict:
+    """Replace hardcoded Windows font paths with runtime-resolved platform paths.
+
+    If a theme TOML supplies '*_font_path' as a raw Windows path that doesn't
+    exist on the current OS, we fall back to resolving it from the logical
+    font name keys (header_font / body_font) via _platform_font().
+    """
+    body_name  = typo_data.get("body_font",   "Arial")
+    header_name = typo_data.get("header_font", body_name)
+
+    def _resolve(key: str, name: str, bold: bool = False, italic: bool = False):
+        raw = typo_data.get(key)
+        if raw and Path(raw).exists():
+            return raw  # path works as-is on this platform
+        return _platform_font(name, bold=bold, italic=italic)
+
+    out = dict(typo_data)
+    out["font_path"]         = _resolve("font_path",         body_name)
+    out["bold_font_path"]    = _resolve("bold_font_path",    body_name,   bold=True)
+    out["italic_font_path"]  = _resolve("italic_font_path",  body_name,   italic=True)
+    if "header_font_path" in typo_data or header_name != body_name:
+        out["header_font_path"]      = _resolve("header_font_path",      header_name)
+        out["header_bold_font_path"] = _resolve("header_bold_font_path", header_name, bold=True)
+    return out
+
+
 def load_settings(theme_name: Literal["light", "dark", "navy"] = "light") -> Settings:
     """Load config.toml and theme file, merge them into a Settings model.
 
@@ -155,6 +230,8 @@ def load_settings(theme_name: Literal["light", "dark", "navy"] = "light") -> Set
     # config.toml supplies the base typography/charts; theme overrides win.
     typo_data = dict(config_data.get("typography", {}))
     typo_data.update(theme_data.get("fonts", {}))
+    # Resolve *_font_path values cross-platform (Windows paths fail on Linux)
+    typo_data = _resolve_font_paths(typo_data)
 
     charts_data = dict(config_data.get("charts", {}))
     charts_data.update(theme_data.get("charts", {}))

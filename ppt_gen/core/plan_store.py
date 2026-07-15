@@ -61,6 +61,56 @@ def find_user_supplied_value(slot_id: str, label: str, user_data: Optional[Dict]
     return None
 
 
+def smart_format_value(value: Any, max_chars: Optional[int] = None) -> str:
+    """Format a user-supplied value to fit within slot max_chars.
+    
+    Abbreviates large numbers and currency strings:
+      ₹2,400Cr  -> ₹2.4kCr  (if max_chars <= 10)
+      $15000000 -> $15M
+      1234567   -> 1.2M
+    """
+    if value is None:
+        return ""
+    s = str(value).strip()
+    if max_chars is None or len(s) <= max_chars:
+        return s
+    
+    # Try to extract a numeric core with prefix/suffix
+    import re
+    # Match optional currency prefix, number, optional suffix (k/M/Cr/L/B etc)
+    m = re.match(r'^([₹$€£¥]?)([\d,\.]+)([kKmMbBCcLl]*)(.*)$', s)
+    if not m:
+        # Can't parse — just truncate gracefully
+        return s[:max_chars].rstrip()
+    
+    prefix, num_str, suffix, rest = m.groups()
+    try:
+        num = float(num_str.replace(',', ''))
+    except ValueError:
+        return s[:max_chars].rstrip()
+    
+    # Abbreviate based on magnitude
+    if num >= 1_000_000_000:
+        abbreviated = f"{num/1_000_000_000:.1f}B"
+    elif num >= 10_000_000:
+        abbreviated = f"{num/1_000_000:.0f}M"
+    elif num >= 1_000_000:
+        abbreviated = f"{num/1_000_000:.1f}M"
+    elif num >= 100_000:
+        abbreviated = f"{num/1_000:.0f}k"
+    elif num >= 10_000:
+        abbreviated = f"{num/1_000:.1f}k"
+    else:
+        abbreviated = num_str  # small enough already
+    
+    candidate = f"{prefix}{abbreviated}{suffix}{rest}"
+    if len(candidate) <= max_chars:
+        return candidate
+    # Drop the suffix/rest if still too long
+    candidate = f"{prefix}{abbreviated}"
+    return candidate[:max_chars]
+
+
 def compile_deck_plan(
     deck_id: str,
     objective: str,
@@ -158,6 +208,9 @@ def compile_deck_plan(
                     resolved_val = engine.generate_slot_value(
                         idx, slot.id, label, slot.data_pattern, user_val
                     )
+                    # Apply smart formatting so long values like ₹2,400Cr fit in tight KPI slots
+                    if isinstance(resolved_val, str) and slot.max_chars:
+                        resolved_val = smart_format_value(resolved_val, slot.max_chars)
                     payload["value"] = resolved_val
 
                 elif slot.widget in ("benchmark_bar", "variance_graphic"):

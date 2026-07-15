@@ -5,6 +5,9 @@ from PIL import ImageFont
 
 logger = logging.getLogger("typography")
 
+# Track which font paths we've already warned about so we don't spam the log.
+_warned_paths: set = set()
+
 # Constants
 DPI = 96.0  # Assumed screen DPI for measuring inches to pixels
 
@@ -94,15 +97,15 @@ def find_optimal_font_size(
 
     # Check if font file exists, fallback to default PIL font if not
     if not Path(measure_font_path).exists():
-        logger.warning(f"Font file {measure_font_path} not found. Sizing will use standard Arial fallback.")
-        # Try a basic system-independent font loader or default font
+        if measure_font_path not in _warned_paths:
+            logger.warning(f"Font file {measure_font_path} not found. Sizing will use standard Arial fallback.")
+            _warned_paths.add(measure_font_path)
+        # Try to load Windows default Arial or standard path
         try:
-            # Try to load Windows default Arial or standard path
             font_size_px = int(start_size * (96.0 / 72.0))
             font = ImageFont.truetype("arial.ttf", font_size_px)
         except IOError:
             font = ImageFont.load_default()
-            # Default PIL font doesn't support truetype sizing; return default size
             return 10, [text]
     
     # Count non-empty paragraphs
