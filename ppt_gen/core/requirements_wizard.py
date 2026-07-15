@@ -10,7 +10,7 @@ class DeckRequirements(BaseModel):
     topic: str
     audience: str
     deck_type: str
-    theme: Literal["light", "dark"]
+    theme: Literal["light", "dark", "navy"]
     slide_count: int
     extra_instructions: Optional[str] = None
     user_data: Dict[str, Any] = Field(default_factory=dict)
@@ -18,9 +18,9 @@ class DeckRequirements(BaseModel):
 def collect_requirements_interactive(initial_topic: Optional[str] = None) -> DeckRequirements:
     """Prompt the user for inputs using rich-based terminal QA."""
     console.print(Panel.fit(
-        "[bold teal]Welcome to ppt-gen Requirements Wizard[/bold teal]\n"
+        "[bold cyan]Welcome to ppt-gen Requirements Wizard[/bold cyan]\n"
         "Let's gather some details to generate your slide deck.",
-        border_style="teal"
+        border_style="cyan"
     ))
 
     # Topic
@@ -39,17 +39,17 @@ def collect_requirements_interactive(initial_topic: Optional[str] = None) -> Dec
     # Deck Type
     deck_type = Prompt.ask(
         "[bold]Select a deck type / preset[/bold]",
-        choices=["consulting_strategy", "business_review", "market_analysis", "product_dashboard", "executive_summary", "custom"],
+        choices=["consulting_strategy", "business_review", "market_analysis", "product_dashboard", "executive_summary", "insights_report", "transformation_roadmap", "strategic_positioning", "dashboard_deck", "custom"],
         default="consulting_strategy"
     )
 
     # Theme
     theme_str = Prompt.ask(
         "[bold]Select a style theme[/bold]",
-        choices=["light", "dark"],
+        choices=["light", "dark", "navy"],
         default="light"
     )
-    theme: Literal["light", "dark"] = "light" if theme_str == "light" else "dark"
+    theme = "light" if theme_str == "light" else ("dark" if theme_str == "dark" else "navy")
 
     # Slide Count
     slide_count = IntPrompt.ask(
@@ -89,12 +89,23 @@ def collect_requirements_interactive(initial_topic: Optional[str] = None) -> Dec
         user_data=user_data
     )
 
-def get_default_requirements(topic: str, slide_count: int = 6, theme: Literal["light", "dark"] = "light") -> DeckRequirements:
+def get_default_requirements(topic: str, slide_count: int = 6, theme: Literal["light", "dark", "navy"] = "light") -> DeckRequirements:
     """Generate default requirements without CLI prompts (used for --fast mode)."""
+    t_clean = topic.lower().strip().replace(" ", "_").replace("-", "_")
+    valid_presets = [
+        "consulting_strategy", "business_review", "market_analysis",
+        "product_dashboard", "executive_summary", "insights_report",
+        "transformation_roadmap", "strategic_positioning", "dashboard_deck"
+    ]
+    deck_type = "consulting_strategy"
+    for p in valid_presets:
+        if p in t_clean or t_clean in p:
+            deck_type = p
+            break
     return DeckRequirements(
         topic=topic,
         audience="Executive Leadership",
-        deck_type="consulting_strategy",
+        deck_type=deck_type,
         theme=theme,
         slide_count=slide_count,
         extra_instructions=None,

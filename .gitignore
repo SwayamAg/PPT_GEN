@@ -46,5 +46,7 @@ output/
 *.njsproj
 *.sln
 *.swp
-*~
+# Sensitive configs
+API
+
 .DS_Store

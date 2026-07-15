@@ -16,7 +16,7 @@ def generate_markdown_outline(slides: List[SlideOutlineItem]) -> str:
         "Instructions: You can edit the Slide Titles, Purposes, Sections, or Archetypes directly in this file.",
         "Save this file when done, then return to the terminal and confirm to proceed.",
         "Do NOT change the line prefixes (e.g. 'Title:', 'Archetype:').",
-        "Available Archetypes: title_challenge, comparison_bars, two_column_initiative, single_chart_focus, stat_grid_charts, table_priorities",
+        "Available Archetypes: executive_cover, title_challenge, comparison_bars, two_column_initiative, single_chart_focus, stat_grid_charts, dashboard_with_table, table_priorities, closing_takeaways",
         ""
     ]
     

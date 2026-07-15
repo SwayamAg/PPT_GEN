@@ -48,14 +48,23 @@ def wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width_px: float) -> L
             
     return all_lines
 
-def get_text_height(lines: List[str], font: ImageFont.FreeTypeFont, line_spacing: float = 1.25) -> float:
-    """Calculate the total height in pixels for a block of text lines."""
+def get_text_height(lines: List[str], font: ImageFont.FreeTypeFont, line_spacing: float = 1.25, num_paragraphs: int = 1) -> float:
+    """Calculate the total height in pixels for a block of text lines, including paragraph spacing."""
     if not lines:
         return 0.0
     # Measure line height of standard uppercase/lowercase combination
     bbox = font.getbbox("Hg")
     line_height = (bbox[3] - bbox[1]) if bbox else 16
-    return len(lines) * line_height * line_spacing
+    text_height = len(lines) * line_height * line_spacing
+
+    # Add paragraph spacing (space_after) for paragraph breaks
+    if num_paragraphs > 1:
+        font_size_pt = font.size
+        space_after_pt = font_size_pt * 0.4 if font_size_pt < 14 else font_size_pt * 0.6
+        spacing_px = space_after_pt * (96.0 / 72.0)
+        text_height += (num_paragraphs - 1) * spacing_px
+
+    return text_height
 
 def find_optimal_font_size(
     text: str,
@@ -64,41 +73,59 @@ def find_optimal_font_size(
     font_path: str,
     start_size: int = 16,
     min_size: int = 9,
-    line_spacing: float = 1.25
+    line_spacing: float = 1.25,
+    header_font_path: str = None
 ) -> Tuple[int, List[str]]:
     """Binary-search down the font size until the wrapped text fits inside the bounding box.
-    
+
     If it doesn't fit at the minimum font size, truncates lines that exceed the height.
+
+    When ``header_font_path`` is provided and exists, it is used for measurement
+    instead of ``font_path``. This lets a theme pair a serif heading font
+    (e.g. Cambria) with a sans body font (e.g. Calibri) and have each measured
+    with its own metrics — otherwise serif titles sized by sans metrics mis-fit.
     """
+    measure_font_path = font_path
+    if header_font_path and Path(header_font_path).exists():
+        measure_font_path = header_font_path
+
     max_width_px = inches_to_pixels(max_width_inches)
     max_height_px = inches_to_pixels(max_height_inches)
-    
+
     # Check if font file exists, fallback to default PIL font if not
-    if not Path(font_path).exists():
-        logger.warning(f"Font file {font_path} not found. Sizing will use standard Arial fallback.")
+    if not Path(measure_font_path).exists():
+        logger.warning(f"Font file {measure_font_path} not found. Sizing will use standard Arial fallback.")
         # Try a basic system-independent font loader or default font
         try:
             # Try to load Windows default Arial or standard path
-            font = ImageFont.truetype("arial.ttf", start_size)
+            font_size_px = int(start_size * (96.0 / 72.0))
+            font = ImageFont.truetype("arial.ttf", font_size_px)
         except IOError:
             font = ImageFont.load_default()
             # Default PIL font doesn't support truetype sizing; return default size
             return 10, [text]
     
+    # Count non-empty paragraphs
+    paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+    num_paragraphs = len(paragraphs)
+
     optimal_size = start_size
     fitting_lines = []
     
     # Binary search down from start_size to min_size
     for size in range(start_size, min_size - 1, -1):
+        font_size_px = int(size * (96.0 / 72.0))
         try:
-            font = ImageFont.truetype(font_path, size)
+            font = ImageFont.truetype(measure_font_path, font_size_px)
         except IOError:
             font = ImageFont.load_default()
             return 10, [text]
-            
+
+        # Sync line spacing with rendering rules: 1.05 if size < 12, else 1.25 (line_spacing)
+        cur_spacing = 1.05 if size < 12 else line_spacing
         lines = wrap_text(text, font, max_width_px)
-        height = get_text_height(lines, font, line_spacing)
-        
+        height = get_text_height(lines, font, cur_spacing, num_paragraphs)
+
         if height <= max_height_px:
             optimal_size = size
             fitting_lines = lines
@@ -106,12 +133,14 @@ def find_optimal_font_size(
     else:
         # If it doesn't fit even at min_size, we use min_size and truncate lines
         optimal_size = min_size
+        font_size_px = int(min_size * (96.0 / 72.0))
         try:
-            font = ImageFont.truetype(font_path, min_size)
+            font = ImageFont.truetype(measure_font_path, font_size_px)
         except IOError:
             font = ImageFont.load_default()
             return 10, [text]
             
+        cur_spacing = 1.05
         all_lines = wrap_text(text, font, max_width_px)
         
         # Keep adding lines until we overflow, then append ellipsis
@@ -121,7 +150,7 @@ def find_optimal_font_size(
         line_height = (bbox[3] - bbox[1]) if bbox else 16
         
         for idx, line in enumerate(all_lines):
-            test_height = current_height + (line_height * line_spacing)
+            test_height = current_height + (line_height * cur_spacing)
             if test_height <= max_height_px:
                 fitting_lines.append(line)
                 current_height = test_height

@@ -18,12 +18,14 @@ gutter_width = 0.15
 gutter_height = 0.15
 
 [llm]
-# Ollama configuration
-host = "http://localhost:11434"
-model = "gemma4:e4b"  # or gemma:4b / gemma:2b
+# LLM Provider configuration: "ollama" or "openrouter"
+provider = "openrouter"
+host = "https://openrouter.ai/api/v1"
+model = "google/gemma-4-26b-a4b-it:free"  # or gemma:4b / gemma:2b
 default_temperature = 0.3
 plan_temperature = 0.5
-max_retries = 2
+max_retries = 3
+api_key = ""  # Can also be set via OPENROUTER_API_KEY environment variable
 
 [typography]
 # Fonts to use for rendering
@@ -34,3 +36,10 @@ body_font = "Arial"
 font_path = "C:/Windows/Fonts/arial.ttf"
 bold_font_path = "C:/Windows/Fonts/arialbd.ttf"
 italic_font_path = "C:/Windows/Fonts/ariali.ttf"
+
+[charts]
+# When true, charts render as native editable PPTX chart objects where the
+# native engine supports the type (bar/grouped_bar/line/multi_bar/pie/hbar);
+# waterfall and heatmap always fall back to Matplotlib. A theme TOML may
+# override this in its own [charts] block.
+native = true

@@ -1,0 +1,44 @@
+# Navy Theme — tuned to match the Canara HSBC "Business Insights" reference deck.
+# Uses a navy (#1E2761) + gold (#C9962C) palette with serif (Cambria) headings
+# paired with sans (Calibri) body text. Title/closing archetypes render on a
+# dark navy background while content slides use a light off-white.
+
+# ── Palette ────────────────────────────────────────────────────────────────
+background = "#F7F8FB"          # light off-white for content slides
+text_primary = "#1E2761"        # navy headings + body
+text_secondary = "#62698A"      # muted grey subtitles / captions
+accent_primary = "#1E2761"      # navy (titles, KPI values)
+accent_secondary = "#C9962C"    # gold (eyebrow labels, highlights)
+accent_tertiary = "#CADCFC"     # light-blue insight-callout fills
+accent_quaternary = "#8A93C4"   # muted purple (footers, dividers)
+card_bg = "#FFFFFF"             # white cards
+card_border = "#E2E8F0"         # thin grey card borders
+
+# Extended tokens (Phase A). Old code reads these via getattr(theme, ..., default).
+title_slide_background = "#1E2761"   # dark navy for cover/closing archetypes
+insight_box_bg = "#CADCFC"           # filled insight callouts
+eyebrow_color = "#C9962C"            # gold uppercase labels
+footer_color = "#8A93C4"             # muted footer line
+
+# Color palette for charts (native + matplotlib)
+chart_colors = [
+    "#1E2761",   # navy
+    "#C9962C",   # gold
+    "#5B9BD5",   # mid blue
+    "#70AD47",   # green
+    "#A5A5A5"    # grey
+]
+
+# ── Fonts (overrides config.toml [typography] for this theme) ──────────────
+[fonts]
+header_font = "Cambria"
+body_font = "Calibri"
+font_path = "C:/Windows/Fonts/calibri.ttf"
+bold_font_path = "C:/Windows/Fonts/calibrib.ttf"
+italic_font_path = "C:/Windows/Fonts/calibrii.ttf"
+header_font_path = "C:/Windows/Fonts/cambria.ttc"
+header_bold_font_path = "C:/Windows/Fonts/cambriab.ttf"
+
+# ── Charts ─────────────────────────────────────────────────────────────────
+[charts]
+native = true

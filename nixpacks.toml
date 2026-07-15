@@ -1,0 +1,5 @@
+[providers.python]
+requirements = "requirements.txt"
+
+[phases.setup]
+nixPkgs = ["fontconfig", "dejavu_fonts", "liberation_ttf"]
