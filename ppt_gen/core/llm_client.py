@@ -121,8 +121,8 @@ class LLMClient:
             except (httpx.RequestError, httpx.HTTPStatusError, ValueError, json.JSONDecodeError, ValidationError) as e:
                 logger.warning(f"Validation error or request failed on attempt {attempt + 1}: {str(e)}")
                 if attempt == self.max_retries:
-                    logger.error("Reached maximum LLM retry attempts. Falling back to mock construction.")
-                    return self._generate_mock(response_model, messages)
+                    logger.error(f"Reached maximum LLM retry attempts. Raising error: {str(e)}")
+                    raise RuntimeError(f"LLM API Call failed after {self.max_retries + 1} attempts. Last error: {str(e)}")
                 
                 # Setup repair loop prompt
                 error_msg = f"Your previous response failed validation with error: {str(e)}. Please correct the JSON structure and keys to match the schema exactly."

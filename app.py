@@ -133,7 +133,15 @@ def generate_outline_action(
 
     except Exception as e:
         import traceback
-        error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
+        err_str = str(e)
+        if "429" in err_str or "rate limit" in err_str.lower():
+            error_msg = "❌ API Error: Rate limit exceeded (429). Please wait a moment or check your API credits / limits."
+        elif "401" in err_str or "unauthorized" in err_str.lower() or "api key" in err_str.lower():
+            error_msg = "❌ API Error: Unauthorized (401). Please check that your API key is valid."
+        elif "connection" in err_str.lower() or "timeout" in err_str.lower():
+            error_msg = "❌ Network Error: Could not connect to LLM server. Please check your internet connection or Ollama service host."
+        else:
+            error_msg = f"❌ Error: {err_str}\n\nTechnical details:\n{traceback.format_exc()}"
         return None, gr.update(visible=False), None, None, None, error_msg
 
 
@@ -319,7 +327,15 @@ def generate_deck_action(df, deck_objective, reqs, mock_mode, api_key):
 
     except Exception as e:
         import traceback
-        error_msg = f"Error generating presentation: {str(e)}\n{traceback.format_exc()}"
+        err_str = str(e)
+        if "429" in err_str or "rate limit" in err_str.lower():
+            error_msg = "❌ API Error: Rate limit exceeded (429). Please wait a moment or check your API credits / limits."
+        elif "401" in err_str or "unauthorized" in err_str.lower() or "api key" in err_str.lower():
+            error_msg = "❌ API Error: Unauthorized (401). Please check that your API key is valid."
+        elif "connection" in err_str.lower() or "timeout" in err_str.lower():
+            error_msg = "❌ Network Error: Could not connect to LLM server. Please check your internet connection or Ollama service host."
+        else:
+            error_msg = f"❌ Error generating presentation: {err_str}\n\nTechnical details:\n{traceback.format_exc()}"
         return error_msg, None
 
 
