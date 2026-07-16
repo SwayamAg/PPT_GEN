@@ -1,12 +1,92 @@
 import sys
+import subprocess
 from pathlib import Path
 import pandas as pd
 import gradio as gr
+import fitz  # PyMuPDF
 
 # Ensure the project root is in the path so we can import ppt_gen packages
 project_root = Path(__file__).resolve().parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+
+def convert_pptx_to_previews(pptx_path: Path, output_dir: Path) -> list:
+    """Convert PPTX to PDF using PowerPoint COM (Windows) or LibreOffice (Linux fallback), and render pages to PNG."""
+    pdf_path = pptx_path.with_suffix(".pdf")
+    output_dir.mkdir(exist_ok=True, parents=True)
+    png_paths = []
+    
+    # 1. Convert PPTX to PDF
+    converted = False
+    if sys.platform == "win32":
+        try:
+            import comtypes.client
+            powerpoint = comtypes.client.CreateObject("PowerPoint.Application")
+            try:
+                presentation = powerpoint.Presentations.Open(str(pptx_path.resolve()), WithWindow=False)
+                presentation.SaveAs(str(pdf_path.resolve()), 32) # ppSaveAsPDF
+                presentation.Close()
+                converted = True
+            except Exception as e:
+                print(f"[Preview] PowerPoint COM conversion failed: {e}")
+            finally:
+                powerpoint.Quit()
+        except Exception as e:
+            print(f"[Preview] PowerPoint COM initialization failed: {e}")
+            
+    if not converted:
+        try:
+            soffice_cmd = "soffice"
+            if sys.platform == "win32":
+                possible_paths = [
+                    Path("C:/Program Files/LibreOffice/program/soffice.exe"),
+                    Path("C:/Program Files (x86)/LibreOffice/program/soffice.exe"),
+                ]
+                for path in possible_paths:
+                    if path.exists():
+                        soffice_cmd = str(path)
+                        break
+            cmd = [soffice_cmd, "--headless", "--convert-to", "pdf", "--outdir", str(pdf_path.parent), str(pptx_path)]
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+            
+            expected_pdf = pdf_path.parent / (pptx_path.stem + ".pdf")
+            if expected_pdf.exists():
+                if expected_pdf != pdf_path:
+                    if pdf_path.exists():
+                        pdf_path.unlink()
+                    expected_pdf.rename(pdf_path)
+                converted = True
+        except Exception as e:
+            print(f"[Preview] LibreOffice conversion failed: {e}")
+            
+    # 2. Render PDF to PNGs
+    if converted and pdf_path.exists():
+        try:
+            # Clear old previews first to prevent layout mixups
+            for old_png in output_dir.glob("slide_*.png"):
+                try:
+                    old_png.unlink()
+                except Exception:
+                    pass
+                    
+            doc = fitz.open(pdf_path)
+            for page_idx, page in enumerate(doc):
+                zoom = 150 / 72
+                mat = fitz.Matrix(zoom, zoom)
+                pix = page.get_pixmap(matrix=mat)
+                
+                png_path = output_dir / f"slide_{page_idx + 1}.png"
+                pix.save(str(png_path))
+                png_paths.append(str(png_path))
+            doc.close()
+        except Exception as e:
+            print(f"[Preview] PyMuPDF rendering failed: {e}")
+        finally:
+            if pdf_path.exists():
+                pdf_path.unlink()
+                
+    return png_paths
 
 from ppt_gen.core.settings import load_settings
 from ppt_gen.core.llm_client import LLMClient
@@ -317,16 +397,19 @@ def generate_deck_action(df, deck_objective, reqs, mock_mode, api_key):
             slides_outline=approved_slides
         )
 
-        # Save plan
-        save_deck_plan(full_deck_plan, plan_path)
+        # Save plan (disabled as intermediate JSON files are no longer required)
+        # save_deck_plan(full_deck_plan, plan_path)
 
         # Render PowerPoint
         renderer = PPTXRenderer(settings)
         validate_deck(full_deck_plan, ARCHETYPES, renderer.layout_engine)
         renderer.render_deck(full_deck_plan, pptx_path)
 
+        # Generate slide previews for UI
+        previews = convert_pptx_to_previews(pptx_path, output_dir / "slide_previews")
+
         success_msg = f"BUILD COMPLETED SUCCESSFULLY!\n\nPowerPoint file generated at: output/{pptx_path.name}"
-        return success_msg, [str(pptx_path), str(plan_path)]
+        return success_msg, [str(pptx_path)], previews
 
     except Exception as e:
         import traceback
@@ -339,7 +422,7 @@ def generate_deck_action(df, deck_objective, reqs, mock_mode, api_key):
             error_msg = "❌ Network Error: Could not connect to LLM server. Please check your internet connection or Ollama service host."
         else:
             error_msg = f"❌ Error generating presentation: {err_str}\n\nTechnical details:\n{traceback.format_exc()}"
-        return error_msg, None
+        return error_msg, None, None
 
 
 # -----------------------------
@@ -508,9 +591,19 @@ with gr.Blocks(
             )
 
             download_files = gr.File(
-                label="Download PowerPoint and Plan Files",
-                file_count="multiple",
+                label="Download PowerPoint Presentation",
+                file_count="single",
                 interactive=False,
+            )
+
+            slide_preview = gr.Gallery(
+                label="Slide Previews",
+                show_label=True,
+                columns=2,
+                rows=None,
+                height="auto",
+                object_fit="contain",
+                preview=True
             )
 
     # --------------------------
@@ -576,6 +669,7 @@ with gr.Blocks(
         outputs=[
             deck_status,
             download_files,
+            slide_preview,
         ],
     )
 

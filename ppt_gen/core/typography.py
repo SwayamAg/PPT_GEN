@@ -1,6 +1,11 @@
 import logging
+import os
+import re
+import zipfile
+import io
+import requests
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from PIL import ImageFont
 
 logger = logging.getLogger("typography")
@@ -10,6 +15,154 @@ _warned_paths: set = set()
 
 # Constants
 DPI = 96.0  # Assumed screen DPI for measuring inches to pixels
+
+# Google Fonts cache directory
+FONTS_CACHE_DIR = Path(__file__).resolve().parent / "fonts_cache"
+FONTS_CACHE_DIR.mkdir(exist_ok=True)
+
+
+def download_google_font(font_family: str, weight_style: str = "Regular") -> Optional[str]:
+    """
+    Download a font from Google Fonts and cache it locally.
+    
+    Args:
+        font_family: The font family name (e.g., "Montserrat", "Inter", "Playfair Display")
+        weight_style: The weight/style variant (e.g., "Regular", "Bold", "Italic", "BoldItalic")
+    
+    Returns:
+        Path to the cached TTF/OTF font file, or None if download fails
+    """
+    # Normalize font family name for URL (replace spaces with +)
+    font_url_name = font_family.replace(" ", "+")
+    
+    # Build cache directory path
+    cache_dir = FONTS_CACHE_DIR / font_family.replace(" ", "_")
+    cache_dir.mkdir(exist_ok=True)
+    
+    # Expected cache file path
+    cache_file = cache_dir / f"{font_family.replace(' ', '_')}_{weight_style}.ttf"
+    
+    # Return cached font if already exists
+    if cache_file.exists():
+        logger.info(f"Using cached Google Font: {cache_file}")
+        return str(cache_file)
+    
+    # Map weight_style to Google Fonts weight values
+    weight_map = {
+        "Regular": "400",
+        "Bold": "700",
+        "Italic": "400",
+        "BoldItalic": "700",
+    }
+    weight = weight_map.get(weight_style, "400")
+    style = "italic" if "Italic" in weight_style else "normal"
+    
+    # Google Fonts CSS API URL to get font file URLs
+    css_url = f"https://fonts.googleapis.com/css2?family={font_url_name}:wght@{weight}&display=swap"
+    
+    try:
+        logger.info(f"Fetching Google Font CSS for: {font_family} ({weight_style}) from {css_url}")
+        response = requests.get(css_url, timeout=30)
+        response.raise_for_status()
+        
+        # Parse the CSS to extract the font file URL
+        # Pattern: url(https://fonts.gstatic.com/.../font.ttf) format('truetype')
+        url_pattern = r'url\((https://fonts\.gstatic\.com/[^)]+\.ttf)\)'
+        matches = re.findall(url_pattern, response.text)
+        
+        if not matches:
+            logger.warning(f"No font URLs found in Google Fonts CSS for '{font_family}'")
+            return None
+        
+        # Filter for the correct style (italic/normal)
+        font_url = None
+        for url in matches:
+            if style == "italic" and "italic" in url.lower():
+                font_url = url
+                break
+            elif style == "normal" and "italic" not in url.lower():
+                font_url = url
+                break
+        
+        # Fallback to first match if specific style not found
+        if not font_url:
+            font_url = matches[0]
+        
+        logger.info(f"Downloading font file from: {font_url}")
+        font_response = requests.get(font_url, timeout=30)
+        font_response.raise_for_status()
+        
+        # Save the font file
+        with open(cache_file, 'wb') as f:
+            f.write(font_response.content)
+        
+        logger.info(f"Successfully downloaded and cached: {cache_file}")
+        return str(cache_file)
+        
+    except requests.RequestException as e:
+        logger.warning(f"Failed to download Google Font '{font_family}': {e}")
+    except Exception as e:
+        logger.warning(f"Unexpected error downloading font '{font_family}': {e}")
+    
+    # Clean up empty cache directory on failure
+    try:
+        if cache_dir.exists() and not any(cache_dir.iterdir()):
+            cache_dir.rmdir()
+    except Exception:
+        pass
+    
+    return None
+
+
+def _find_font_in_cache(font_family: str, bold: bool = False, italic: bool = False) -> Optional[str]:
+    """Check if a font is already cached locally."""
+    weight_style = "Regular"
+    if bold and italic:
+        weight_style = "BoldItalic"
+    elif bold:
+        weight_style = "Bold"
+    elif italic:
+        weight_style = "Italic"
+    
+    cache_dir = FONTS_CACHE_DIR / font_family.replace(" ", "_")
+    if not cache_dir.exists():
+        return None
+    
+    # Look for exact match
+    expected_name = f"{font_family.replace(' ', '_')}_{weight_style}.ttf"
+    expected_path = cache_dir / expected_name
+    if expected_path.exists():
+        return str(expected_path)
+    
+    # Look for any matching variant
+    for font_file in cache_dir.glob("*.ttf"):
+        if weight_style.lower() in font_file.stem.lower():
+            return str(font_file)
+    
+    # Fallback to any TTF in the font's cache directory
+    for font_file in cache_dir.glob("*.ttf"):
+        return str(font_file)
+    
+    return None
+
+
+def _download_and_cache_font(font_family: str, bold: bool = False, italic: bool = False) -> Optional[str]:
+    """Download a Google Font if not in cache."""
+    weight_style = "Regular"
+    if bold and italic:
+        weight_style = "BoldItalic"
+    elif bold:
+        weight_style = "Bold"
+    elif italic:
+        weight_style = "Italic"
+    
+    # Check cache first
+    cached = _find_font_in_cache(font_family, bold, italic)
+    if cached:
+        return cached
+    
+    # Try to download
+    return download_google_font(font_family, weight_style)
 
 def inches_to_pixels(inches: float) -> float:
     return inches * DPI

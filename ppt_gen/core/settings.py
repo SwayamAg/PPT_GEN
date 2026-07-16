@@ -9,6 +9,12 @@ try:
 except ImportError:
     import tomli as tomllib
 
+# Import Google Fonts downloader
+try:
+    from ppt_gen.core.typography import _download_and_cache_font
+except ImportError:
+    _download_and_cache_font = None
+
 class PresentationSettings(BaseModel):
     width_inches: float = 13.33
     height_inches: float = 7.5
@@ -64,7 +70,10 @@ _LINUX_SANS_ITALIC = [
 
 
 def _platform_font(name: str, bold: bool = False, italic: bool = False) -> str:
-    """Resolve a best-guess system font path for the given logical font name."""
+    """Resolve a best-guess system font path for the given logical font name.
+    
+    Falls back to downloading from Google Fonts if the font is not installed locally.
+    """
     is_mac   = sys.platform == "darwin"
     is_linux = sys.platform.startswith("linux")
 
@@ -87,14 +96,23 @@ def _platform_font(name: str, bold: bool = False, italic: bool = False) -> str:
             "/System/Library/Fonts/Helvetica.ttc",
             "/System/Library/Fonts/Arial.ttf",
         ]
-        return _find_font(candidates)
+        found = _find_font(candidates)
+        if Path(found).exists():
+            return found
+        # Fallback to Google Fonts
+        return _try_google_fonts(name, bold, italic) or found
 
     if is_linux:
         if bold:
-            return _find_font(_LINUX_SANS_BOLD)
-        if italic:
-            return _find_font(_LINUX_SANS_ITALIC)
-        return _find_font(_LINUX_SANS)
+            found = _find_font(_LINUX_SANS_BOLD)
+        elif italic:
+            found = _find_font(_LINUX_SANS_ITALIC)
+        else:
+            found = _find_font(_LINUX_SANS)
+        if Path(found).exists():
+            return found
+        # Fallback to Google Fonts
+        return _try_google_fonts(name, bold, italic) or found
 
     # Windows — build candidates with both lowercase and uppercase filename variants
     win_dir = "C:/Windows/Fonts"
@@ -116,16 +134,40 @@ def _platform_font(name: str, bold: bool = False, italic: bool = False) -> str:
         # cambria special case
         if base == "cambria" and not bold and not italic:
             candidates.insert(0, f"{win_dir}/cambria.ttc")
-        return _find_font(candidates)
+        found = _find_font(candidates)
+        if Path(found).exists():
+            return found
+        # Fallback to Google Fonts
+        return _try_google_fonts(name, bold, italic) or found
 
     # Generic fallback for unknown font names
+    # First check if the requested font exists in Windows Fonts
     suffix = "bd" if bold else ("i" if italic else "")
-    candidates = [
+    font_candidates = [
         f"{win_dir}/{base}{suffix}.ttf",
         f"{win_dir}/{base}{suffix}.ttc",
-        f"{win_dir}/arial.ttf",  # last resort
     ]
-    return _find_font(candidates)
+    found = _find_font(font_candidates)
+    if Path(found).exists():
+        return found
+    # Font not found locally — try Google Fonts
+    google_font = _try_google_fonts(name, bold, italic)
+    if google_font:
+        return google_font
+    # Google Fonts failed — fall back to Arial
+    return _find_font([f"{win_dir}/arial.ttf"])
+
+
+def _try_google_fonts(name: str, bold: bool, italic: bool) -> Optional[str]:
+    """Try to download and cache a font from Google Fonts."""
+    if _download_and_cache_font is None:
+        return None
+    try:
+        return _download_and_cache_font(name, bold, italic)
+    except Exception as e:
+        import logging
+        logging.getLogger("settings").warning(f"Google Fonts download failed for '{name}': {e}")
+        return None
 
 
 class TypographySettings(BaseModel):
@@ -181,27 +223,41 @@ def _resolve_font_paths(typo_data: dict) -> dict:
     If a theme TOML supplies '*_font_path' as a raw Windows path that doesn't
     exist on the current OS, we fall back to resolving it from the logical
     font name keys (header_font / body_font) via _platform_font().
+
+    If the theme specifies a different font name than the config default,
+    we prioritize resolving that font name (via system fonts or Google Fonts)
+    over the config's hardcoded path.
     """
     body_name  = typo_data.get("body_font",   "Arial")
     header_name = typo_data.get("header_font", body_name)
 
-    def _resolve(key: str, name: str, bold: bool = False, italic: bool = False):
+    # Check if theme explicitly specifies a different font than config default
+    # (config.toml defaults to Arial). If so, we should try to resolve the
+    # theme's font name first, rather than using config's hardcoded Arial path.
+    config_default_body = "Arial"
+    config_default_header = "Arial"
+    
+    body_name_differs = body_name.lower() != config_default_body.lower()
+    header_name_differs = header_name.lower() != config_default_header.lower()
+
+    def _resolve(key: str, name: str, bold: bool = False, italic: bool = False, name_differs: bool = False):
         raw = typo_data.get(key)
-        if raw and Path(raw).exists():
+        # If theme specifies a different font name, don't use config's hardcoded path
+        if raw and Path(raw).exists() and not name_differs:
             return raw  # path works as-is on this platform
         return _platform_font(name, bold=bold, italic=italic)
 
     out = dict(typo_data)
-    out["font_path"]         = _resolve("font_path",         body_name)
-    out["bold_font_path"]    = _resolve("bold_font_path",    body_name,   bold=True)
-    out["italic_font_path"]  = _resolve("italic_font_path",  body_name,   italic=True)
+    out["font_path"]         = _resolve("font_path",         body_name, name_differs=body_name_differs)
+    out["bold_font_path"]    = _resolve("bold_font_path",    body_name,   bold=True, name_differs=body_name_differs)
+    out["italic_font_path"]  = _resolve("italic_font_path",  body_name,   italic=True, name_differs=body_name_differs)
     if "header_font_path" in typo_data or header_name != body_name:
-        out["header_font_path"]      = _resolve("header_font_path",      header_name)
-        out["header_bold_font_path"] = _resolve("header_bold_font_path", header_name, bold=True)
+        out["header_font_path"]      = _resolve("header_font_path",      header_name, name_differs=header_name_differs)
+        out["header_bold_font_path"] = _resolve("header_bold_font_path", header_name, bold=True, name_differs=header_name_differs)
     return out
 
 
-def load_settings(theme_name: Literal["light", "dark", "navy"] = "light") -> Settings:
+def load_settings(theme_name: str = "light") -> Settings:
     """Load config.toml and theme file, merge them into a Settings model.
 
     A theme TOML may optionally carry a ``[fonts]`` block (header_font,

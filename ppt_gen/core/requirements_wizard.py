@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Optional, Literal
 from pydantic import BaseModel, Field
 from rich.console import Console
 from rich.panel import Panel
@@ -10,7 +10,7 @@ class DeckRequirements(BaseModel):
     topic: str
     audience: str
     deck_type: str
-    theme: Literal["light", "dark", "navy"]
+    theme: str  # Allow any theme name (e.g., "light", "dark", "navy", "test_google_fonts")
     slide_count: int
     extra_instructions: Optional[str] = None
     user_data: Dict[str, Any] = Field(default_factory=dict)
@@ -89,7 +89,7 @@ def collect_requirements_interactive(initial_topic: Optional[str] = None) -> Dec
         user_data=user_data
     )
 
-def get_default_requirements(topic: str, slide_count: int = 6, theme: Literal["light", "dark", "navy"] = "light") -> DeckRequirements:
+def get_default_requirements(topic: str, slide_count: int = 6, theme: str = "light") -> DeckRequirements:
     """Generate default requirements without CLI prompts (used for --fast mode)."""
     t_clean = topic.lower().strip().replace(" ", "_").replace("-", "_")
     valid_presets = [

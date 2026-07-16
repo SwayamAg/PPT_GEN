@@ -76,20 +76,22 @@ def test_pipeline():
     
     # 4. Test generate_deck_action
     print("Testing generate_deck_action (Mock Mode)...")
-    success_msg, files = generate_deck_action(
+    success_msg, files, previews = generate_deck_action(
         df, objective, reqs, mock_mode=True, api_key=""
     )
     
     assert files is not None, "files should not be None"
-    assert len(files) == 2, f"Should return 2 files (.pptx and .plan.json), got {len(files)}"
+    assert len(files) == 1, f"Should return 1 file (.pptx), got {len(files)}"
     
     pptx_path = Path(files[0])
-    plan_path = Path(files[1])
-    
     assert pptx_path.exists(), f"PowerPoint file does not exist: {pptx_path}"
-    assert plan_path.exists(), f"Plan JSON file does not exist: {plan_path}"
+
+    assert previews is not None, "previews list should not be None"
+    assert len(previews) > 0, "should have generated slide preview PNGs"
+    for img_path in previews:
+        assert Path(img_path).exists(), f"Slide preview image does not exist: {img_path}"
     
-    print(f"✅ generate_deck_action passed. Output pptx: {pptx_path.name}")
+    print(f"✅ generate_deck_action passed. Output pptx: {pptx_path.name} (with {len(previews)} previews)")
     print("\n🎉 ALL TESTS PASSED SUCCESSFULLY!")
 
 if __name__ == "__main__":

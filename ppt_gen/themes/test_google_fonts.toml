@@ -1,0 +1,38 @@
+# Test Google Fonts Theme — uses Montserrat (Google Font) for both headers and body
+# This theme tests the auto-download feature for Google Fonts
+
+# ── Palette ────────────────────────────────────────────────────────────────
+background = "#FFFFFF"
+text_primary = "#1A1A2E"
+text_secondary = "#4A4A6A"
+accent_primary = "#1A1A2E"
+accent_secondary = "#E94560"
+accent_tertiary = "#E8E8F0"
+accent_quaternary = "#A0A0B8"
+card_bg = "#FFFFFF"
+card_border = "#E0E0E8"
+
+# Extended tokens
+title_slide_background = "#1A1A2E"
+insight_box_bg = "#E8E8F0"
+eyebrow_color = "#E94560"
+footer_color = "#A0A0B8"
+
+# Color palette for charts
+chart_colors = [
+    "#1A1A2E",
+    "#E94560",
+    "#0F3460",
+    "#533483",
+    "#A0A0B8"
+]
+
+# ── Fonts (uses Montserrat from Google Fonts) ──────────────────────────────
+[fonts]
+header_font = "Montserrat"
+body_font = "Montserrat"
+# font_path will be auto-resolved via Google Fonts download
+
+# ── Charts ─────────────────────────────────────────────────────────────────
+[charts]
+native = true

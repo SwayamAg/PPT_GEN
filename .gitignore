@@ -50,3 +50,7 @@ output/
 API
 
 .DS_Store
+
+# Cached Fonts
+**/fonts_cache/
+

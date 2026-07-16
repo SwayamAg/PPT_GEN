@@ -39,7 +39,7 @@ class ResolvedSlide(BaseModel):
 
 class FullDeckPlan(BaseModel):
     objective: str
-    theme: Literal["light", "dark", "navy"] = "light"
+    theme: str = "light"
     slides: List[ResolvedSlide]
 
 
@@ -114,7 +114,7 @@ def smart_format_value(value: Any, max_chars: Optional[int] = None) -> str:
 def compile_deck_plan(
     deck_id: str,
     objective: str,
-    theme: Literal["light", "dark", "navy"],
+    theme: str,
     slides_outline: List[SlideOutlineItem],
     slides_content: List[SlideContent]
 ) -> FullDeckPlan:

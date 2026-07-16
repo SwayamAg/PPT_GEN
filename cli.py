@@ -128,8 +128,8 @@ def handle_build(args):
         pregenerated_deck=pregenerated_deck
     )
     
-    logger.info(f"Saving resolved plan to {plan_path}...")
-    save_deck_plan(full_deck_plan, plan_path)
+    # logger.info(f"Saving resolved plan to {plan_path}...")
+    # save_deck_plan(full_deck_plan, plan_path)
     
     logger.info(f"Rendering PowerPoint presentation to {pptx_path}...")
     renderer = PPTXRenderer(settings)
@@ -138,10 +138,7 @@ def handle_build(args):
     print("\n" + "="*60)
     print(f"BUILD COMPLETED SUCCESSFULLY!")
     print(f"PowerPoint Deck: {pptx_path.resolve()}")
-    print(f"Sidecar Plan File (Editable): {plan_path.resolve()}")
     print("="*60)
-    print("\nTo update numbers later, edit the plan.json file and run:")
-    print(f"  python cli.py render {plan_path}")
 
 def handle_render(args):
     """Fast, LLM-free re-rendering from an existing plan.json file."""
@@ -183,7 +180,7 @@ def main():
     parser_build.add_argument("prompt", type=str, help="Topic or main objective of the slide deck")
     parser_build.add_argument("--fast", action="store_true", help="Skip interactive QA prompts and use templates instantly")
     parser_build.add_argument("--mock", action="store_true", help="Run with mock LLM outputs offline")
-    parser_build.add_argument("--theme", choices=["light", "dark"], default="light", help="Theme palette")
+    parser_build.add_argument("--theme", default="light", help="Theme palette (light, dark, navy, or custom theme name)")
     parser_build.add_argument("--slides", type=int, default=6, help="Target slide count")
     
     # render sub-command
