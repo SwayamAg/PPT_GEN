@@ -11,6 +11,35 @@ T = TypeVar("T", bound=BaseModel)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("llm_client")
 
+import re
+
+def repair_json_string(s: str) -> str:
+    """Repair typical LLM JSON issues like trailing commas and unescaped newlines in strings."""
+    # 1. Clean trailing commas in arrays/objects
+    s = re.sub(r',\s*([\}\]])', r'\1', s)
+    
+    # 2. Fix raw newlines inside string values
+    chars = list(s)
+    in_string = False
+    escape = False
+    for i in range(len(chars)):
+        c = chars[i]
+        if escape:
+            escape = False
+            continue
+        if c == '\\':
+            escape = True
+            continue
+        if c == '"':
+            in_string = not in_string
+            continue
+        if c == '\n' and in_string:
+            chars[i] = '\\n'
+        elif c == '\r' and in_string:
+            chars[i] = ''
+            
+    return "".join(chars)
+
 class LLMClient:
     def __init__(self, settings: Settings, mock_mode: Optional[bool] = None):
         self.settings = settings
@@ -115,7 +144,12 @@ class LLMClient:
                     content_clean = content_clean[first_char:last_char + 1]
                 
                 # Parse JSON content into Pydantic model
-                parsed_data = json.loads(content_clean)
+                try:
+                    parsed_data = json.loads(content_clean)
+                except json.JSONDecodeError:
+                    # Attempt to repair the JSON string
+                    repaired = repair_json_string(content_clean)
+                    parsed_data = json.loads(repaired)
                 return response_model.model_validate(parsed_data)
                 
             except (httpx.RequestError, httpx.HTTPStatusError, ValueError, json.JSONDecodeError, ValidationError) as e:
