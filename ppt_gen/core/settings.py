@@ -57,15 +57,45 @@ _LINUX_SANS = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
     "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    # Nix/Nixpacks standard paths
+    "/nix/var/nix/profiles/default/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/nix/var/nix/profiles/default/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    os.path.expanduser("~/.nix-profile/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/dejavu/DejaVuSans.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/liberation/LiberationSans-Regular.ttf"),
+    # Generic barenames for PIL's internal resolution via fontconfig
+    "LiberationSans-Regular.ttf",
+    "DejaVuSans.ttf",
 ]
 _LINUX_SANS_BOLD = [
     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+    # Nix/Nixpacks standard paths
+    "/nix/var/nix/profiles/default/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/nix/var/nix/profiles/default/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    os.path.expanduser("~/.nix-profile/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/dejavu/DejaVuSans-Bold.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/liberation/LiberationSans-Bold.ttf"),
+    # Generic barenames
+    "LiberationSans-Bold.ttf",
+    "DejaVuSans-Bold.ttf",
 ]
 _LINUX_SANS_ITALIC = [
     "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+    # Nix/Nixpacks standard paths
+    "/nix/var/nix/profiles/default/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
+    "/nix/var/nix/profiles/default/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+    os.path.expanduser("~/.nix-profile/share/fonts/truetype/liberation/LiberationSans-Italic.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/dejavu/DejaVuSans-Oblique.ttf"),
+    os.path.expanduser("~/.nix-profile/share/fonts/liberation/LiberationSans-Italic.ttf"),
+    # Generic barenames
+    "LiberationSans-Italic.ttf",
+    "DejaVuSans-Oblique.ttf",
 ]
 
 
@@ -161,6 +191,16 @@ def _platform_font(name: str, bold: bool = False, italic: bool = False) -> str:
 def _try_google_fonts(name: str, bold: bool, italic: bool) -> Optional[str]:
     """Try to download and cache a font from Google Fonts."""
     if _download_and_cache_font is None:
+        return None
+    # Skip downloading standard fonts that are proprietary or not hosted on Google Fonts
+    standard_fonts = {
+        "arial", "calibri", "cambria", "timesnewroman", "times", "helvetica", 
+        "georgia", "courier", "couriernew", "verdana", "trebuchetms", 
+        "garamond", "bookman", "dejavusans", "liberationsans", "dejavusans-bold",
+        "dejavusans-oblique", "liberationsans-regular", "liberationsans-bold",
+        "liberationsans-italic"
+    }
+    if name.lower().replace(" ", "").replace("-", "") in standard_fonts:
         return None
     try:
         return _download_and_cache_font(name, bold, italic)

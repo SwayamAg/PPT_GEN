@@ -2,4 +2,4 @@
 requirements = "requirements.txt"
 
 [phases.setup]
-nixPkgs = ["fontconfig", "dejavu_fonts", "liberation_ttf"]
+nixPkgs = ["fontconfig", "dejavu_fonts", "liberation_ttf", "libreoffice"]

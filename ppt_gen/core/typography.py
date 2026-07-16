@@ -248,8 +248,19 @@ def find_optimal_font_size(
     max_width_px = inches_to_pixels(max_width_inches)
     max_height_px = inches_to_pixels(max_height_inches)
 
-    # Check if font file exists, fallback to default PIL font if not
-    if not Path(measure_font_path).exists():
+    # Check if font file exists or is loadable directly as a system font name
+    font_exists = False
+    if Path(measure_font_path).exists():
+        font_exists = True
+    else:
+        # Try loading a small size to see if PIL can resolve it directly via system fontconfig
+        try:
+            ImageFont.truetype(measure_font_path, 10)
+            font_exists = True
+        except IOError:
+            pass
+
+    if not font_exists:
         if measure_font_path not in _warned_paths:
             logger.warning(f"Font file {measure_font_path} not found. Sizing will use standard Arial fallback.")
             _warned_paths.add(measure_font_path)
